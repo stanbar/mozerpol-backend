@@ -10,8 +10,10 @@ db.run("CREATE TABLE IF NOT EXISTS Post (content TEXT)");
 
 var app = require('../app');
 var debug = require('debug')('mozerpol-server:server');
-var http = require('http');
+var https = require('https');
 
+const fs = require('fs');
+require('dotenv').config();
 /**
  * Get port from environment and store in Express.
  */
@@ -20,18 +22,33 @@ var port = normalizePort(process.env.PORT || '9999');
 app.set('port', port);
 
 /**
- * Create HTTP server.
+ * Create HTTPS server.
  */
+let httpsError = false;
+if (!process.env.STASBAR_SSL_KEY) {
+  console.warn("Didn't start https server because of absence of STASBAR_SSL_KEY");
+  httpsError = true;
+}
+if (!process.env.STASBAR_SSL_CERT) {
+  console.warn("Didn't start https server because of absence of STASBAR_SSL_CERT");
+  httpsError = true;
+}
+if (!httpsError) {
+  const sslOptions = {
+    key: fs.readFileSync(process.env.STASBAR_SSL_KEY),
+    cert: fs.readFileSync(process.env.STASBAR_SSL_CERT),
+    ca: process.env.STASBAR_SSL_CA ? fs.readFileSync(process.env.STASBAR_SSL_CA) : undefined,
+  };
 
-var server = http.createServer(app);
+  const httpsPort = parseInt(process.env.PORT_HTTPS || '9999', 10);
+  var server = https.createServer(sslOptions, app);
 
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+  server.listen(httpsPort);
+  server.on('error', onError);
+  server.on('listening', onListening);
+} else {
+  console.error('Could not create server');
+}
 
 db.close();
 /**
