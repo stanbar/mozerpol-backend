@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var sqlite3 = require('sqlite3').verbose()
-var db = new sqlite3.Database(':memory:')
+var db = new sqlite3.Database('../mozerpol.db')
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
@@ -26,8 +26,6 @@ router.post('/', function(req, res, next) {
     return res.send('Can not create empty post');
   }
   db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS Post (content TEXT)");
-
     var stmt = db.prepare("INSERT INTO Post VALUES (?)");
     stmt.run(content);
     stmt.finalize();
